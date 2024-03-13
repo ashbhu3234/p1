@@ -356,12 +356,12 @@ class IPAdapterModel(torch.nn.Module):
 
     def init_proj_instantid(self, image_emb_dim=512, num_tokens=16):
         image_proj_model = Resampler(
-            dim=1280,
+            dim=768,
             depth=4,
             dim_head=64,
-            heads=20,
-            num_queries=num_tokens,
-            embedding_dim=image_emb_dim,
+            heads=12,
+            num_queries=self.clip_extra_context_tokens,
+            embedding_dim=1280,
             output_dim=self.cross_attention_dim,
             ff_mult=4,
         )
@@ -413,16 +413,17 @@ class IPAdapterModel(torch.nn.Module):
         )
 
     @torch.inference_mode()
-    def get_image_embeds_instantid(self, prompt_image_emb: Union[torch.Tensor, np.ndarray]) -> ImageEmbed:
+    def get_image_embeds_instantid(self, prompt_image_emb) -> ImageEmbed:
         """Get image embeds for instantid."""
-        image_proj_model_in_features = 512
-        if isinstance(prompt_image_emb, torch.Tensor):
-            prompt_image_emb = prompt_image_emb.clone().detach()
-        else:
-            prompt_image_emb = torch.tensor(prompt_image_emb)
-
-        prompt_image_emb = prompt_image_emb.to(device=self.device, dtype=torch.float32)
-        prompt_image_emb = prompt_image_emb.reshape([1, -1, image_proj_model_in_features])
+        # image_proj_model_in_features = 1280
+        # if isinstance(prompt_image_emb, torch.Tensor):
+        #     prompt_image_emb = prompt_image_emb.clone().detach()
+        # else:
+        #     prompt_image_emb = torch.tensor(prompt_image_emb)
+        self.image_proj_model.cpu()
+        prompt_image_emb = prompt_image_emb['hidden_states'][-2].to(device='cpu', dtype=torch.float32)
+        # prompt_image_emb = prompt_image_emb.to(device=self.device, dtype=torch.float32)
+        # prompt_image_emb = prompt_image_emb.reshape([1, -1, image_proj_model_in_features])
         return ImageEmbed(
             self.image_proj_model(prompt_image_emb),
             self.image_proj_model(torch.zeros_like(prompt_image_emb)),
@@ -574,6 +575,7 @@ class PlugableIPAdapter(torch.nn.Module):
 
     def get_image_emb(self, preprocessor_output) -> ImageEmbed:
         if self.is_instantid:
+            # print(preprocessor_output.shape)
             return self.ipadapter.get_image_embeds_instantid(preprocessor_output)
         elif self.is_faceid and self.is_plus:
             # Note: FaceID plus uses both face_embed and clip_embed.
