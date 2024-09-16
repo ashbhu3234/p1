@@ -9,7 +9,7 @@ import modules.scripts as scripts
 from modules import shared, devices, script_callbacks, processing, masking, images
 import gradio as gr
 import time
-
+import controlnet_aux
 from einops import rearrange
 
 # Register all preprocessors.
