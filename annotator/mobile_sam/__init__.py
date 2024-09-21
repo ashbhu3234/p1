@@ -9,7 +9,7 @@ from modules import devices
 from annotator.util import load_model
 from annotator.annotator_path import models_path
 
-from controlnet_aux import SamDetector
+from controlnet import SamDetector
 from controlnet_aux.segment_anything import sam_model_registry, SamAutomaticMaskGenerator
 
 class SamDetector_Aux(SamDetector):
