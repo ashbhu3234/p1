@@ -7,6 +7,7 @@ yapf
 albumentations==1.4.3
 matplotlib
 facexlib
-timm<=0.9.5
+timm<=1.0.9
 pydantic<=1.10.17
-controlnet_aux>=0.0.9
+controlnet_aux @ git+https://github.com/Planningo/controlnet_aux
+
