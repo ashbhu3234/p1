@@ -72,7 +72,7 @@ class AdvancedWeightControl:
         self.weight_editor = None
         self.weight_composition = None
 
-    def render(self):
+    def render(self, tabname=None, elem_id_tabname=None):
         with gr.Group(visible=False) as self.group:
             with gr.Row():
                 self.weight_type = gr.Dropdown(
@@ -94,6 +94,7 @@ class AdvancedWeightControl:
                     ],
                     label="Weight Type",
                     value="normal",
+                    elem_id=None if elem_id_tabname is None else f"{elem_id_tabname}_{tabname}_controlnet_weight_type_dropdown"
                 )
                 self.weight_composition = gr.Slider(
                     label="Composition Weight",
@@ -103,7 +104,11 @@ class AdvancedWeightControl:
                     step=0.01,
                     visible=False,
                 )
-                self.weight_editor = gr.Textbox(label="Weights", visible=False)
+                self.weight_editor = gr.Textbox(
+                    label="Weights", 
+                    visible=False,
+                    elem_id=None if elem_id_tabname is None else f"{elem_id_tabname}_{tabname}_controlnet_weights_textbox"
+                )
 
             self.weight_plot = gr.Image(
                 value=None,
