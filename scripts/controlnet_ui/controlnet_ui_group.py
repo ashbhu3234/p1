@@ -637,7 +637,7 @@ class ControlNetUiGroup(object):
             visible=False,
         )
 
-        self.advanced_weight_control.render()
+        self.advanced_weight_control.render(tabname, elem_id_tabname)
 
         self.batch_image_dir_state = gr.State("")
         self.output_dir_state = gr.State("")
