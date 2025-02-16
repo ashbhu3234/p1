@@ -102,20 +102,21 @@ global_state.update_cn_models()
 logger.info(f"ControlNet {controlnet_version.version_flag}")
 
 
-def prepare_mask(
-    mask: Image.Image, p: processing.StableDiffusionProcessing
-) -> Image.Image:
+def prepare_mask(mask: Image.Image, p: processing.StableDiffusionProcessing) -> Image.Image:
     """
     Prepare an image mask for the inpainting process.
 
     This function takes as input a PIL Image object and an instance of the 
     StableDiffusionProcessing class, and performs the following steps to prepare the mask:
 
-    1. Convert the mask to grayscale (mode "L").
+    1. If the image is RGBA, it computes the grayscale value using standard
+       RGB luminance weights modulated by the alpha channel, ensuring that fully
+       transparent pixels become pure black and partially transparent pixels have
+       an appropriately scaled gray value. Otherwise, it simply converts the mask to grayscale.
     2. If the 'inpainting_mask_invert' attribute of the processing instance is True,
        invert the mask colors.
-    3. If the 'mask_blur' attribute of the processing instance is greater than 0,
-       apply a Gaussian blur to the mask with a radius equal to 'mask_blur'.
+    3. If the 'mask_blur' attribute (or mask_blur_x/mask_blur_y if available) of the processing
+       instance is greater than 0, apply a Gaussian blur to the mask accordingly.
 
     Args:
         mask (Image.Image): The input mask as a PIL Image object.
@@ -125,10 +126,33 @@ def prepare_mask(
     Returns:
         mask (Image.Image): The prepared mask as a PIL Image object.
     """
-    mask = mask.convert("L")
+    # Custom grayscale conversion if the image is in RGBA mode:
+    if mask.mode == "RGBA":
+        # Separate the RGBA channels
+        r, g, b, a = mask.split()
+        # Convert channels to numpy arrays as float32 for precision
+        np_r = np.array(r, dtype=np.float32)
+        np_g = np.array(g, dtype=np.float32)
+        np_b = np.array(b, dtype=np.float32)
+        np_a = np.array(a, dtype=np.float32) / 255.0  # normalize alpha channel
+        
+        # Compute luminance using standard RGB weights
+        luminance = 0.299 * np_r + 0.587 * np_g + 0.114 * np_b
+        
+        # Multiply by the alpha channel so that transparency is respected:
+        gray_array = (luminance * np_a).astype(np.uint8)
+        
+        # Create a new grayscale image
+        mask = Image.fromarray(gray_array, mode="L")
+    else:
+        # Simple conversion if no alpha channel is present
+        mask = mask.convert("L")
+
+    # Invert the mask if requested
     if getattr(p, "inpainting_mask_invert", False):
         mask = ImageOps.invert(mask)
 
+    # Apply Gaussian blur if required
     if hasattr(p, 'mask_blur_x'):
         if getattr(p, "mask_blur_x", 0) > 0:
             np_mask = np.array(mask)
